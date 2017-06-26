@@ -61,7 +61,7 @@ def convert(parser, cmd_args=None):
     layout_type = 'column'
     layout_data = OrderedDict(
       (choose_name(name, sub_parser), {
-        'command': name.lower(),
+        'command': name,
         'contents': process(sub_parser, cmd_args, getattr(sub_parser, 'widgets', {}))
       }) for name, sub_parser in get_subparser(actions).choices.iteritems())
 
