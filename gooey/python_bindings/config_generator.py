@@ -5,7 +5,7 @@ from gooey.python_bindings import argparse_to_json
 from gooey.gui.util.quoting import quote
 
 
-def create_from_parser(parser, source_path, **kwargs):
+def create_from_parser(parser, source_path, cmd_args, **kwargs):
   auto_start = kwargs.get('auto_start', False)
 
   if hasattr(sys, 'frozen'):
@@ -38,7 +38,7 @@ def create_from_parser(parser, source_path, **kwargs):
   if not auto_start:
     build_spec['program_description'] = parser.description or build_spec['program_description']
 
-    layout_data = argparse_to_json.convert(parser) if build_spec['show_advanced'] else layouts.basic_config.items()
+    layout_data = argparse_to_json.convert(parser, cmd_args=cmd_args) if build_spec['show_advanced'] else layouts.basic_config.items()
     build_spec.update(layout_data)
 
   return build_spec
