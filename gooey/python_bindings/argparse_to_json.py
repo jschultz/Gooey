@@ -51,7 +51,7 @@ class UnsupportedConfiguration(Exception):
 }
 
 
-def convert(parser):
+def convert(parser, use_argparse_groups):
   widget_dict = getattr(parser, 'widgets', {})
   actions = parser._actions
 
@@ -61,8 +61,8 @@ def convert(parser):
     layout_type = 'column'
     layout_data = OrderedDict(
       (choose_name(name, sub_parser), {
-        'command': name,
-        'contents': process(sub_parser, getattr(sub_parser, 'widgets', {}))
+        'command': name.lower(),
+        'contents': process(sub_parser, getattr(sub_parser, 'widgets', {}), use_argparse_groups)
       }) for name, sub_parser in get_subparser(actions).choices.iteritems())
 
   else:
@@ -70,7 +70,7 @@ def convert(parser):
     layout_data = OrderedDict([
       ('primary', {
         'command': None,
-        'contents': process(parser, widget_dict)
+        'contents': process(parser, widget_dict, use_argparse_groups)
       })
     ])
 
@@ -80,9 +80,24 @@ def convert(parser):
   }
 
 
-def process(parser, widget_dict):
-  return {action_group.title: process_action_group(action_group, widget_dict) \
-            for action_group in parser._action_groups}
+def process(parser, widget_dict, use_argparse_groups):
+  if use_argparse_groups:
+    return {action_group.title: process_action_group(action_group, widget_dict) \
+              for action_group in parser._action_groups}
+  else:
+    mutually_exclusive_groups = [
+                    [mutex_action for mutex_action in group_actions._group_actions]
+                    for group_actions in parser._mutually_exclusive_groups]
+    group_options = list(chain(*mutually_exclusive_groups))
+    base_actions = [action for action in parser._actions
+                    if action not in group_options
+                    and action.dest != 'help']
+    required_actions = filter(is_required, base_actions)
+    optional_actions = filter(is_optional, base_actions)
+
+    return list(categorize(required_actions, widget_dict, required=True)) + \
+           list(categorize(optional_actions, widget_dict)) + \
+           map(build_radio_group, mutually_exclusive_groups)
 
 def process_action_group(action_group, widget_dict):
   mutually_exclusive_groups = [

@@ -129,13 +129,20 @@ class MyModel(object):
   def wrap(self, groups):
     output = OrderedDict()
     for name, group in groups.items():
-      output[name] = ArgumentGroup(
-        name,
-        group['command'],
-        {group_name: map(self.to_object, group['contents'][group_name]) for group_name in group['contents'].keys()}
-      )
+      if self.use_argparse_groups:
+        output[name] = ArgumentGroup(
+          name,
+          group['command'],
+          {group_name: map(self.to_object, group['contents'][group_name]) for group_name in group['contents'].keys()}
+        )
+      else:
+        required_arguments, optional_arguments = self.group_arguments(group['contents'])
+        output[name] = ArgumentGroup(
+          name,
+          group['command'],
+          {"required arguments": required_arguments, "optional arguments": optional_arguments}
+        )
     return output
-
 
   def __init__(self, build_spec):
 
@@ -158,6 +165,7 @@ class MyModel(object):
     self.use_monospace_font = self.build_spec.get('monospace_display')
     self.stop_button_disabled = self.build_spec['disable_stop_button']
 
+    self.use_argparse_groups = self.build_spec['use_argparse_groups']
     self.argument_groups = self.wrap(self.build_spec.get('widgets', {}))
     self.active_group = iter(self.argument_groups).next()
 
@@ -216,7 +224,8 @@ class MyModel(object):
     return True
 
   def build_command_line_string(self):
-    optional_args = [arg.value for arg in self.optional_args]
+    print(self.argument_groups)
+    optional_args = [arg.value for arg in self.argument_groups[self.active_group]["optional arguments"]]
     required_args = [c.value for c in self.required_args if c.commands]
     position_args = [c.value for c in self.required_args if not c.commands]
     if position_args:

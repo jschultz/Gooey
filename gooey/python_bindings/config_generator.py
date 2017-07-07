@@ -32,13 +32,14 @@ def create_from_parser(parser, source_path, **kwargs):
     'progress_expr':        kwargs.get('progress_expr'),
     'disable_progress_bar_animation': kwargs.get('disable_progress_bar_animation'),
     'disable_stop_button':  kwargs.get('disable_stop_button'),
-    'group_by_type':        kwargs.get('group_by_type', True)
+    'group_by_type':        kwargs.get('group_by_type', True),
+    'use_argparse_groups':  kwargs.get('use_argparse_groups', False)
   }
 
   if not auto_start:
     build_spec['program_description'] = parser.description or build_spec['program_description']
 
-    layout_data = argparse_to_json.convert(parser) if build_spec['show_advanced'] else layouts.basic_config.items()
+    layout_data = argparse_to_json.convert(parser, build_spec['use_argparse_groups']) if build_spec['show_advanced'] else layouts.basic_config.items()
     build_spec.update(layout_data)
 
   return build_spec
