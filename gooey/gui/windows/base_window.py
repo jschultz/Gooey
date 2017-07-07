@@ -77,13 +77,14 @@ class BaseWindow(wx.Frame):
   def heading_subtitle(self, text):
     self.head_panel.subtitle = text
 
-  @property
-  def required_section(self):
-    return self.config_panel.main_content.required_section
+  def create_section(self, name):
+    self.config_panel.main_content.CreateSection(name)
 
-  @property
-  def optional_section(self):
-    return self.config_panel.main_content.optional_section
+  def do_layout(self):
+    self.config_panel.main_content._do_layout()
+
+  def section(self, name):
+    return self.config_panel.main_content.Section(name)
 
   @property
   def progress_bar(self):

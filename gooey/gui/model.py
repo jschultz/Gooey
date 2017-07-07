@@ -5,14 +5,14 @@ from gooey.gui.lang.i18n import _
 from gooey.gui.util.quoting import quote
 
 
-ArgumentGroup = namedtuple('ArgumentGroup', 'name command required_args optional_args')
+ArgumentGroup = namedtuple('ArgumentGroup', 'name command arguments_dict')
 
 
 class MyWidget(object):
   # TODO: Undumbify damn
   # TODO: Undumbify _value/value access
 
-  def __init__(self, type, title, help, default, nargs, commands, choices):
+  def __init__(self, type, title, help, default, nargs, commands, choices, required):
     self.type = type
     self.title = title
     self.help = help
@@ -21,6 +21,7 @@ class MyWidget(object):
     self.nargs = nargs
     self.commands = commands
     self.choices = choices
+    self.required = required
 
   @property
   def value(self):
@@ -131,7 +132,7 @@ class MyModel(object):
       output[name] = ArgumentGroup(
         name,
         group['command'],
-        *self.group_arguments(group['contents'])
+        {group_name: map(self.to_object, group['contents'][group_name]) for group_name in group['contents'].keys()}
       )
     return output
 
@@ -163,6 +164,8 @@ class MyModel(object):
     self.num_required_cols = self.build_spec['num_required_cols']
     self.num_optional_cols = self.build_spec['num_optional_cols']
 
+    self.num_cols = self.build_spec['num_required_cols']
+
     self.text_states = {
       States.CONFIGURING: {
         'title': _("settings_title"),
@@ -182,13 +185,11 @@ class MyModel(object):
       }
     }
 
-  @property
-  def required_args(self):
-    return self.argument_groups[self.active_group].required_args
+  def args(self, group):
+    return self.argument_groups[self.active_group].arguments_dict[group]
 
-  @property
-  def optional_args(self):
-    return self.argument_groups[self.active_group].optional_args
+  def groups(self):
+    return self.argument_groups[self.active_group].arguments_dict.keys()
 
   def update_state(self, state):
     self.current_state = state
@@ -201,14 +202,18 @@ class MyModel(object):
     # TODO: fix skipping_config.. whatever that did
     # currently breaks when you supply it as a decorator option
     # return self.skipping_config() and self.required_section_complete()
-    return self.is_required_section_complete()
+    return self.are_required_arguments_present()
 
   def skipping_config(self):
     return self.build_spec['manual_start']
 
-  def is_required_section_complete(self):
-    completed_values = filter(None, [arg.value for arg in self.required_args])
-    return len(self.required_args) == len(completed_values)
+  def are_required_arguments_present(self):
+    for group in self.groups():
+      for arg in self.args(group):
+        if arg.required and not arg.value:
+          return False
+
+    return True
 
   def build_command_line_string(self):
     optional_args = [arg.value for arg in self.optional_args]
@@ -219,7 +224,7 @@ class MyModel(object):
     cmd_string = ' '.join(filter(None, chain(required_args, optional_args, position_args)))
     if self.layout_type == 'column':
       cmd_string = u'{} {}'.format(self.argument_groups[self.active_group].command, cmd_string)
-    return u'{} --ignore-gooey {}'.format(self.build_spec['target'], cmd_string)
+    return u'{} {} {}'.format(self.build_spec['target'], self.build_spec['ignore_command'] or '', cmd_string)
 
   def group_arguments(self, widget_list):
     is_required = lambda widget: widget['required']
@@ -243,7 +248,8 @@ class MyModel(object):
       self.maybe_unpack(details, 'default'),
       self.maybe_unpack(details, 'nargs'),
       self.maybe_unpack(details, 'commands'),
-      self.maybe_unpack(details, 'choices')
+      self.maybe_unpack(details, 'choices'),
+      self.maybe_unpack(details, 'required')
     )
 
   @staticmethod

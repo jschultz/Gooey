@@ -8,6 +8,7 @@ Managed the internal layout for configuration options
 import wx
 from wx.lib.scrolledpanel import ScrolledPanel
 from itertools import chain, izip_longest
+from collections import OrderedDict
 
 from gooey.gui.util import wx_util
 from gooey.gui.lang import i18n
@@ -85,19 +86,24 @@ class ConfigPanel(ScrolledPanel):
     self.title = title
     self._num_req_cols = req_cols
     self._num_opt_cols = opt_cols
-    self.required_section = WidgetContainer(self, i18n._("required_args_msg"))
-    self.optional_section = WidgetContainer(self, i18n._("optional_args_msg"))
 
-    self._do_layout()
+    self.section = OrderedDict()
     self.Bind(wx.EVT_SIZE, self.OnResize)
+
+  def CreateSection(self, name):
+    self.section[name] = WidgetContainer(self, i18n._(name))
+
+  def Section(self, name):
+    return self.section[name]
 
   def _do_layout(self):
     STD_LAYOUT = (0, wx.LEFT | wx.RIGHT | wx.EXPAND, PADDING)
 
     container = wx.BoxSizer(wx.VERTICAL)
     container.AddSpacer(15)
-    container.Add(self.required_section, *STD_LAYOUT)
-    container.Add(self.optional_section, *STD_LAYOUT)
+
+    for section in self.section.keys():
+      container.Add(self.section[section], *STD_LAYOUT)
     self.SetSizer(container)
 
   def OnResize(self, evt):
@@ -105,6 +111,6 @@ class ConfigPanel(ScrolledPanel):
     evt.Skip()
 
   def clear(self):
-    self.required_section.clear()
-    self.optional_section.clear()
+    for section in self.section.keys():
+      self.section[section].clear()
 
