@@ -47,7 +47,7 @@ class Presenter(object):
     for group in self.model.groups():
       self.view.create_section(group)
       self.view.section(group).clear()
-      self.view.section(group).populate(self.model.args(group), self.model.num_cols)
+      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
 
     self.view.do_layout()
 
@@ -93,10 +93,10 @@ class Presenter(object):
 
   def redraw_from_model(self):
     self.view.freeze()
-    self.view.required_section.clear()
-    self.view.optional_section.clear()
-    self.view.required_section.populate(self.model.required_args, self.model.num_required_cols)
-    self.view.optional_section.populate(self.model.optional_args, self.model.num_optional_cols)
+    for group in self.model.groups():
+      self.view.section(group).clear()
+      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
+
     getattr(self, self.model.current_state)()
     self.view.thaw()
 

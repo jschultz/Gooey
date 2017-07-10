@@ -21,8 +21,6 @@ def create_from_parser(parser, source_path, **kwargs):
     'auto_start':           kwargs.get('auto_start', False),
     'show_advanced':        kwargs.get('advanced', True),
     'default_size':         kwargs.get('default_size', (610, 530)),
-    'num_required_cols':    kwargs.get('required_cols', 1),
-    'num_optional_cols':    kwargs.get('optional_cols', 3),
     'manual_start':         False,
     'layout_type':          'flat',
     'monospace_display':    kwargs.get('monospace_display', False),
@@ -35,6 +33,13 @@ def create_from_parser(parser, source_path, **kwargs):
     'group_by_type':        kwargs.get('group_by_type', True),
     'use_argparse_groups':  kwargs.get('use_argparse_groups', False)
   }
+
+  if build_spec['use_argparse_groups']:
+    build_spec['num_default_cols'] = kwargs.get('default_cols', 2)
+    build_spec['num_cols_dict'] = kwargs.get('cols_dict', {})
+  else:
+    build_spec['num_cols_dict'] = {"required arguments": kwargs.get('required_cols', 1),
+                                   "optional arguments": kwargs.get('optional_cols', 3)}
 
   if not auto_start:
     build_spec['program_description'] = parser.description or build_spec['program_description']

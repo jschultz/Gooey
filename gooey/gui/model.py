@@ -169,10 +169,8 @@ class MyModel(object):
     self.argument_groups = self.wrap(self.build_spec.get('widgets', {}))
     self.active_group = iter(self.argument_groups).next()
 
-    self.num_required_cols = self.build_spec['num_required_cols']
-    self.num_optional_cols = self.build_spec['num_optional_cols']
-
-    self.num_cols = self.build_spec['num_required_cols']
+    self.num_default_cols = self.build_spec.get('num_default_cols')
+    self.num_cols_dict = self.build_spec['num_cols_dict']
 
     self.text_states = {
       States.CONFIGURING: {
@@ -216,21 +214,26 @@ class MyModel(object):
     return self.build_spec['manual_start']
 
   def are_required_arguments_present(self):
-    for group in self.groups():
-      for arg in self.args(group):
-        if arg.required and not arg.value:
+    if self.use_argparse_groups:
+      for group in self.groups():
+        for arg in self.args(group):
+          if arg.required and not arg.value:
+            return False
+    else:
+      for arg in self.args("required arguments"):
+        if not arg.value:
           return False
 
     return True
 
   def build_command_line_string(self):
     arguments_dict = self.argument_groups[self.active_group].arguments_dict
-    optional_args = [arg.value for arg in arguments_dict["optional arguments"]]
-    required_args = [arg.value for arg in arguments_dict["required arguments"] if arg.commands]
-    position_args = [arg.value for arg in arguments_dict["required arguments"] if not arg.commands]
+    all_args = list(chain.from_iterable(arguments_dict.values()))
+    optional_args = [arg.value for arg in all_args if arg.commands]
+    position_args = [arg.value for arg in all_args if not arg.commands]
     if position_args:
       position_args.insert(0, "--")
-    cmd_string = ' '.join(filter(None, chain(required_args, optional_args, position_args)))
+    cmd_string = ' '.join(filter(None, chain(optional_args, position_args)))
     if self.layout_type == 'column':
       cmd_string = u'{} {}'.format(self.argument_groups[self.active_group].command, cmd_string)
     return u'{} --ignore-gooey {}'.format(self.build_spec['target'], cmd_string)
