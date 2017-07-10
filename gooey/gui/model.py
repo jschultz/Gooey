@@ -224,16 +224,16 @@ class MyModel(object):
     return True
 
   def build_command_line_string(self):
-    print(self.argument_groups)
-    optional_args = [arg.value for arg in self.argument_groups[self.active_group]["optional arguments"]]
-    required_args = [c.value for c in self.required_args if c.commands]
-    position_args = [c.value for c in self.required_args if not c.commands]
+    arguments_dict = self.argument_groups[self.active_group].arguments_dict
+    optional_args = [arg.value for arg in arguments_dict["optional arguments"]]
+    required_args = [arg.value for arg in arguments_dict["required arguments"] if arg.commands]
+    position_args = [arg.value for arg in arguments_dict["required arguments"] if not arg.commands]
     if position_args:
       position_args.insert(0, "--")
     cmd_string = ' '.join(filter(None, chain(required_args, optional_args, position_args)))
     if self.layout_type == 'column':
       cmd_string = u'{} {}'.format(self.argument_groups[self.active_group].command, cmd_string)
-    return u'{} {} {}'.format(self.build_spec['target'], self.build_spec['ignore_command'] or '', cmd_string)
+    return u'{} --ignore-gooey {}'.format(self.build_spec['target'], cmd_string)
 
   def group_arguments(self, widget_list):
     is_required = lambda widget: widget['required']
