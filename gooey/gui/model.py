@@ -219,7 +219,7 @@ class MyModel(object):
     if self.use_argparse_groups:
       for group in self.groups():
         for arg in self.args(group):
-          if arg.required:
+          if arg.required and arg.nargs not in ['?', '*']:
             error_found |= not self.is_required_argument_present(arg, error_found)
     else:
       for arg in self.args("required arguments"):
