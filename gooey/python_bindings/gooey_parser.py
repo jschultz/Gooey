@@ -53,7 +53,7 @@ class GooeyParser(object):
     return group
 
   def add_argument_group(self, *args, **kwargs):
-    return self.parser.add_argument_group(*args, **kwargs)
+    return GooeyParserGroup(self, *args, **kwargs)
 
   def parse_args(self, args=None, namespace=None):
     return self.parser.parse_args(args, namespace)
@@ -94,3 +94,15 @@ class GooeyParser(object):
 
   def __setattr__(self, key, value):
     return setattr(self.parser, key, value)
+
+class GooeyParserGroup(object):
+  def __init__(self, parent, title=None, description=None):
+    self.parent = parent
+    self.group = parent.parser.add_argument_group(title, description)
+
+  def add_argument(self, *args, **kwargs):
+    widget = kwargs.pop('widget', None)
+    metavar = kwargs.pop('metavar', None)
+    self.group.add_argument(*args, **kwargs)
+    self.group._actions[-1].metavar = metavar
+    self.parent.widgets[self.parent.parser._actions[-1].dest] = widget
