@@ -60,7 +60,13 @@ def Gooey(f=None,
           sys.exit(1)
 
       if not build_spec:
-        cmd_args = self.original_parse_args() if load_cmd_args else None
+        cmd_args = None
+        if load_cmd_args:
+          try:
+            cmd_args = self.original_parse_args()
+          except:
+            pass
+
         build_spec = config_generator.create_from_parser(self, source_path, cmd_args, payload_name=payload.__name__, **params)
 
       if dump_build_config:
