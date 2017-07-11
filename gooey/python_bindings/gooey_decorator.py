@@ -24,6 +24,8 @@ def Gooey(f=None,
           default_size=(610, 530),
           required_cols=2,
           optional_cols=2,
+          default_cols=2,
+          cols_dict={},
           dump_build_config=False,
           load_build_config=None,
           monospace_display=False, # TODO: add this to the docs
@@ -36,7 +38,8 @@ def Gooey(f=None,
           group_by_type=True, # TODO: add this to the docs
           ignore_command='--ignore-gooey',
           force_command=None,
-          load_cmd_args=False):
+          load_cmd_args=False,
+          use_argparse_groups=False): # TODO: add this to the docs
   '''
   Decorator for client code's main function.
   Serializes argparse data to JSON for use with the Gooey front end

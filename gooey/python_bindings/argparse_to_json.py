@@ -51,7 +51,7 @@ class UnsupportedConfiguration(Exception):
 }
 
 
-def convert(parser, cmd_args=None):
+def convert(parser, use_argparse_groups, cmd_args=None):
   widget_dict = getattr(parser, 'widgets', {})
   actions = parser._actions
 
@@ -62,7 +62,7 @@ def convert(parser, cmd_args=None):
     layout_data = OrderedDict(
       (choose_name(name, sub_parser), {
         'command': name,
-        'contents': process(sub_parser, cmd_args, getattr(sub_parser, 'widgets', {}))
+        'contents': process(sub_parser, getattr(sub_parser, 'widgets', {}), use_argparse_groups)
       }) for name, sub_parser in get_subparser(actions).choices.iteritems())
 
   else:
@@ -70,7 +70,7 @@ def convert(parser, cmd_args=None):
     layout_data = OrderedDict([
       ('primary', {
         'command': None,
-        'contents': process(parser, cmd_args, widget_dict)
+        'contents': process(parser, cmd_args, widget_dict, use_argparse_groups)
       })
     ])
 
@@ -80,22 +80,37 @@ def convert(parser, cmd_args=None):
   }
 
 
-def process(parser, cmd_args, widget_dict):
+def process(parser, cmd_args, widget_dict, use_argparse_groups):
+  if use_argparse_groups:
+    return {action_group.title: process_action_group(action_group, cmd_args, widget_dict)
+              for action_group in parser._action_groups}
+  else:
+    mutually_exclusive_groups = [
+                    [mutex_action for mutex_action in group_actions._group_actions]
+                    for group_actions in parser._mutually_exclusive_groups]
+    group_options = list(chain(*mutually_exclusive_groups))
+    base_actions = [action for action in parser._actions
+                    if action not in group_options
+                    and action.dest != 'help']
+    required_actions = filter(is_required, base_actions)
+    optional_actions = filter(is_optional, base_actions)
+
+    return list(categorize(required_actions, widget_dict, required=True)) + \
+           list(categorize(optional_actions, widget_dict)) + \
+           map(build_radio_group, mutually_exclusive_groups)
+
+def process_action_group(action_group, cmd_args, widget_dict):
   mutually_exclusive_groups = [
                   [mutex_action for mutex_action in group_actions._group_actions]
-                  for group_actions in parser._mutually_exclusive_groups]
+                  for group_actions in action_group._mutually_exclusive_groups]
 
   group_options = list(chain(*mutually_exclusive_groups))
 
-  base_actions = [action for action in parser._actions
+  base_actions = [action for action in action_group._group_actions
                   if action not in group_options
                   and action.dest != 'help']
 
-  required_actions = filter(is_required, base_actions)
-  optional_actions = filter(is_optional, base_actions)
-
-  return list(categorize(required_actions, cmd_args, widget_dict, required=True)) + \
-         list(categorize(optional_actions, cmd_args, widget_dict)) + \
+  return list(categorize(base_actions, cmd_args, widget_dict, required=True)) + \
          map(build_radio_group, mutually_exclusive_groups)
 
 def categorize(actions, cmd_args, widget_dict, required=False):
@@ -217,7 +232,8 @@ def as_json(action, widget, required):
       'nargs': action.nargs or '',
       'commands': action.option_strings,
       'choices': action.choices or [],
-      'default': clean_default(widget, action.default)
+      'default': clean_default(widget, action.default),
+      'required': action.required
     }
   }
 

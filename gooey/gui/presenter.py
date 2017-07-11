@@ -44,10 +44,12 @@ class Presenter(object):
     self.view.window_title = self.model.program_name
     self.view.window_size = self.model.default_size
 
-    self.view.required_section.clear()
-    self.view.optional_section.clear()
-    self.view.required_section.populate(self.model.required_args, self.model.num_required_cols)
-    self.view.optional_section.populate(self.model.optional_args, self.model.num_optional_cols)
+    for group in self.model.groups():
+      self.view.create_section(group)
+      self.view.section(group).clear()
+      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
+
+    self.view.do_layout()
 
     if self.model.use_monospace_font:
       self.view.set_display_font_style('monospace')
@@ -66,8 +68,9 @@ class Presenter(object):
     self.syncronize_from_model()
 
   def update_model(self):
-    self.update_list(self.model.required_args, self.view.required_section.get_values())
-    self.update_list(self.model.optional_args, self.view.optional_section.get_values())
+    for group in self.model.groups():
+      self.update_list(self.model.args(group), self.view.section(group).get_values())
+
     self.syncronize_from_model()
 
   def syncronize_from_model(self):
@@ -81,20 +84,19 @@ class Presenter(object):
     self.view.heading_subtitle = self.model.heading_subtitle
 
     # refresh the widgets
-    for index, widget in enumerate(self.view.required_section):
-      widget.set_value(self.model.required_args[index]._value)
-    for index, widget in enumerate(self.view.optional_section):
-      widget.set_value(self.model.optional_args[index]._value)
+    for group in self.model.groups():
+      for index, widget in enumerate(self.view.section(group)):
+        widget.set_value(self.model.args(group)[index]._value)
 
     # swap the views
     getattr(self, self.model.current_state)()
 
   def redraw_from_model(self):
     self.view.freeze()
-    self.view.required_section.clear()
-    self.view.optional_section.clear()
-    self.view.required_section.populate(self.model.required_args, self.model.num_required_cols)
-    self.view.optional_section.populate(self.model.optional_args, self.model.num_optional_cols)
+    for group in self.model.groups():
+      self.view.section(group).clear()
+      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
+
     getattr(self, self.model.current_state)()
     self.view.thaw()
 

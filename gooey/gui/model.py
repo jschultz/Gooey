@@ -6,14 +6,14 @@ from gooey.gui.util.quoting import quote
 
 import wx
 
-ArgumentGroup = namedtuple('ArgumentGroup', 'name command required_args optional_args')
+ArgumentGroup = namedtuple('ArgumentGroup', 'name command arguments_dict')
 
 
 class MyWidget(object):
   # TODO: Undumbify damn
   # TODO: Undumbify _value/value access
 
-  def __init__(self, type, title, help, default, nargs, commands, choices):
+  def __init__(self, type, title, help, default, nargs, commands, choices, required):
     self.type = type
     self.title = title
     self.help = help
@@ -22,6 +22,7 @@ class MyWidget(object):
     self.nargs = nargs
     self.commands = commands
     self.choices = choices
+    self.required = required
 
   @property
   def value(self):
@@ -129,13 +130,20 @@ class MyModel(object):
   def wrap(self, groups):
     output = OrderedDict()
     for name, group in groups.items():
-      output[name] = ArgumentGroup(
-        name,
-        group['command'],
-        *self.group_arguments(group['contents'])
-      )
+      if self.use_argparse_groups:
+        output[name] = ArgumentGroup(
+          name,
+          group['command'],
+          {group_name: map(self.to_object, group['contents'][group_name]) for group_name in group['contents'].keys()}
+        )
+      else:
+        required_arguments, optional_arguments = self.group_arguments(group['contents'])
+        output[name] = ArgumentGroup(
+          name,
+          group['command'],
+          {"required arguments": required_arguments, "optional arguments": optional_arguments}
+        )
     return output
-
 
   def __init__(self, build_spec):
 
@@ -158,11 +166,12 @@ class MyModel(object):
     self.use_monospace_font = self.build_spec.get('monospace_display')
     self.stop_button_disabled = self.build_spec['disable_stop_button']
 
+    self.use_argparse_groups = self.build_spec['use_argparse_groups']
     self.argument_groups = self.wrap(self.build_spec.get('widgets', {}))
     self.active_group = iter(self.argument_groups).next()
 
-    self.num_required_cols = self.build_spec['num_required_cols']
-    self.num_optional_cols = self.build_spec['num_optional_cols']
+    self.num_default_cols = self.build_spec.get('num_default_cols')
+    self.num_cols_dict = self.build_spec['num_cols_dict']
 
     self.text_states = {
       States.CONFIGURING: {
@@ -183,13 +192,11 @@ class MyModel(object):
       }
     }
 
-  @property
-  def required_args(self):
-    return self.argument_groups[self.active_group].required_args
+  def args(self, group):
+    return self.argument_groups[self.active_group].arguments_dict[group]
 
-  @property
-  def optional_args(self):
-    return self.argument_groups[self.active_group].optional_args
+  def groups(self):
+    return self.argument_groups[self.active_group].arguments_dict.keys()
 
   def update_state(self, state):
     self.current_state = state
@@ -202,32 +209,45 @@ class MyModel(object):
     # TODO: fix skipping_config.. whatever that did
     # currently breaks when you supply it as a decorator option
     # return self.skipping_config() and self.required_section_complete()
-    return self.is_required_section_complete()
+    return self.are_required_arguments_present()
 
   def skipping_config(self):
     return self.build_spec['manual_start']
 
-  def is_required_section_complete(self):
+  def are_required_arguments_present(self):
     error_found = False
-    for arg in self.required_args:
-      widget = arg.widget_instance.widget_pack.widget
-      if arg.value:
-        widget.SetBackgroundColour(wx.NullColour)
-      else:
-        if not error_found:
-          error_found = True
-          widget.SetFocus()
-        widget.SetBackgroundColour("Red")
+    if self.use_argparse_groups:
+      for group in self.groups():
+        for arg in self.args(group):
+          if arg.required:
+            error_found |= not self.is_required_argument_present(arg, error_found)
+    else:
+      for arg in self.args("required arguments"):
+        error_found |= not self.is_required_argument_present(arg, error_found)
 
     return not error_found
 
+  @staticmethod
+  def is_required_argument_present(arg, error_found):
+    widget = arg.widget_instance.widget_pack.widget
+    if arg.value:
+      widget.SetBackgroundColour(wx.NullColour)
+      return True
+    else:
+      if not error_found:
+        error_found = True
+        widget.SetFocus()
+      widget.SetBackgroundColour("Red")
+      return False
+
   def build_command_line_string(self):
-    optional_args = [arg.value for arg in self.optional_args]
-    required_args = [c.value for c in self.required_args if c.commands]
-    position_args = [c.value for c in self.required_args if not c.commands]
+    arguments_dict = self.argument_groups[self.active_group].arguments_dict
+    all_args = list(chain.from_iterable(arguments_dict.values()))
+    optional_args = [arg.value for arg in all_args if arg.commands]
+    position_args = [arg.value for arg in all_args if not arg.commands]
     if position_args:
       position_args.insert(0, "--")
-    cmd_string = ' '.join(filter(None, chain(required_args, optional_args, position_args)))
+    cmd_string = ' '.join(filter(None, chain(optional_args, position_args)))
     if self.layout_type == 'column':
       cmd_string = u'{} {}'.format(self.argument_groups[self.active_group].command, cmd_string)
     return u'{} {} {}'.format(self.build_spec['target'], self.build_spec['ignore_command'] or '', cmd_string)
@@ -254,7 +274,8 @@ class MyModel(object):
       self.maybe_unpack(details, 'default'),
       self.maybe_unpack(details, 'nargs'),
       self.maybe_unpack(details, 'commands'),
-      self.maybe_unpack(details, 'choices')
+      self.maybe_unpack(details, 'choices'),
+      self.maybe_unpack(details, 'required')
     )
 
   @staticmethod
