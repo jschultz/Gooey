@@ -134,14 +134,14 @@ class MyModel(object):
         output[name] = ArgumentGroup(
           name,
           group['command'],
-          {group_name: map(self.to_object, group['contents'][group_name]) for group_name in group['contents'].keys()}
+          OrderedDict([(group_name, map(self.to_object, group['contents'][group_name])) for group_name in group['contents']])
         )
       else:
         required_arguments, optional_arguments = self.group_arguments(group['contents'])
         output[name] = ArgumentGroup(
           name,
           group['command'],
-          {"required arguments": required_arguments, "optional arguments": optional_arguments}
+          OrderedDict([("required arguments", required_arguments), ("optional arguments", optional_arguments)])
         )
     return output
 
