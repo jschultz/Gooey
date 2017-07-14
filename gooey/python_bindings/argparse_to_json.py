@@ -82,8 +82,8 @@ def convert(parser, use_argparse_groups):
 
 def process(parser, widget_dict, use_argparse_groups):
   if use_argparse_groups:
-    return {action_group.title: process_action_group(action_group, widget_dict) \
-              for action_group in parser._action_groups}
+    return OrderedDict([(action_group.title, process_action_group(action_group, widget_dict))
+                           for action_group in parser._action_groups])
   else:
     mutually_exclusive_groups = [
                     [mutex_action for mutex_action in group_actions._group_actions]
