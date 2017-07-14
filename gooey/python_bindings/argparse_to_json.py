@@ -95,8 +95,8 @@ def process(parser, cmd_args, widget_dict, use_argparse_groups):
     required_actions = filter(is_required, base_actions)
     optional_actions = filter(is_optional, base_actions)
 
-    return list(categorize(required_actions, widget_dict, required=True)) + \
-           list(categorize(optional_actions, widget_dict)) + \
+    return list(categorize(required_actions, cmd_args, widget_dict, required=True)) + \
+           list(categorize(optional_actions, cmd_args, widget_dict)) + \
            map(build_radio_group, mutually_exclusive_groups)
 
 def process_action_group(action_group, cmd_args, widget_dict):
