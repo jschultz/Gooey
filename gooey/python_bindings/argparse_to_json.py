@@ -62,7 +62,7 @@ def convert(parser, use_argparse_groups, cmd_args=None):
     layout_data = OrderedDict(
       (choose_name(name, sub_parser), {
         'command': name,
-        'contents': process(sub_parser, getattr(sub_parser, 'widgets', {}), use_argparse_groups)
+        'contents': process(sub_parser, cmd_args, getattr(sub_parser, 'widgets', {}), use_argparse_groups)
       }) for name, sub_parser in get_subparser(actions).choices.iteritems())
 
   else:
