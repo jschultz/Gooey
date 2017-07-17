@@ -33,10 +33,12 @@ class Presenter(object):
 
     pub.subscribe(self.on_selection_change, events.LIST_BOX)
 
-
   def on_selection_change(self, selection):
-    self.update_model()
+    self.delete_model()
     self.model.active_group = selection
+    self.create_model()
+    self.view.do_layout()
+    self.update_model()
     self.redraw_from_model()
     self.syncronize_from_model()
 
@@ -44,11 +46,7 @@ class Presenter(object):
     self.view.window_title = self.model.program_name
     self.view.window_size = self.model.default_size
 
-    for group in self.model.groups():
-      self.view.create_section(group)
-      self.view.section(group).clear()
-      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
-
+    self.create_model()
     self.view.do_layout()
 
     if self.model.use_monospace_font:
@@ -66,6 +64,16 @@ class Presenter(object):
       self.model.update_state(States.RUNNNING)
       self.on_start()
     self.syncronize_from_model()
+
+  def create_model(self):
+    for group in self.model.groups():
+      self.view.create_section(group)
+      self.view.section(group).clear()
+      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
+
+  def delete_model(self):
+    for group in self.model.groups():
+      self.view.delete_section(group)
 
   def update_model(self):
     for group in self.model.groups():

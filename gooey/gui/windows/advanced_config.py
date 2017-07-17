@@ -94,6 +94,9 @@ class ConfigPanel(ScrolledPanel):
   def CreateSection(self, name):
     self.section[name] = WidgetContainer(self, i18n._(name))
 
+  def DeleteSection(self, name):
+    del self.section[name]
+
   def Section(self, name):
     return self.section[name]
 
