@@ -80,6 +80,9 @@ class BaseWindow(wx.Frame):
   def create_section(self, name):
     self.config_panel.main_content.CreateSection(name)
 
+  def delete_section(self, name):
+    self.config_panel.main_content.DeleteSection(name)
+
   def do_layout(self):
     self.config_panel.main_content._do_layout()
 
