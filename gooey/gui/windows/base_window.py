@@ -22,13 +22,14 @@ class BaseWindow(wx.Frame):
   Primary Frame under which all sub-Panels are organized.
   '''
 
-  def __init__(self, layout_type):
+  def __init__(self, layout_type, use_tabs):
     wx.Frame.__init__(self, parent=None, id=-1)
 
     self.SetDoubleBuffered(True)
 
     # type of gui to render
     self.layout_type = layout_type
+    self.use_tabs = use_tabs
 
     # Components
     self.icon = None

@@ -17,12 +17,16 @@ from gooey.gui.widgets import components
 PADDING = 10
 
 
-class WidgetContainer(wx.Panel):
+class WidgetContainer(ScrolledPanel):
   '''
   Collection of widgets
   '''
-  def __init__(self, parent, section_name, *args, **kwargs):
-    wx.Panel.__init__(self, parent, *args, **kwargs)
+  def __init__(self, parent, section_name, use_tabs, *args, **kwargs):
+    if use_tabs:
+      ScrolledPanel.__init__(self, parent, *args, **kwargs)
+      self.SetupScrolling(scroll_x=False, scrollToTop=False)
+    else:
+      wx.Panel.__init__(self, parent, *args, **kwargs)
     self.section_name = section_name
     self.title = None
     self.widgets = []
@@ -38,8 +42,9 @@ class WidgetContainer(wx.Panel):
       self.container.AddSpacer(30)
 
     if self.widgets:
-      self.container.Add(wx_util.h1(self, self.section_name), 0, wx.LEFT | wx.RIGHT, PADDING)
-      self.container.AddSpacer(5)
+      if not self.Parent.use_tabs:
+        self.container.Add(wx_util.h1(self, self.section_name), 0, wx.LEFT | wx.RIGHT, PADDING)
+        self.container.AddSpacer(5)
       self.container.Add(wx_util.horizontal_rule(self), *STD_LAYOUT)
       self.container.AddSpacer(20)
       self.create_component_grid(self.container, self.widgets, cols=num_columns)
@@ -77,25 +82,37 @@ class WidgetContainer(wx.Panel):
     return iter(self.widgets)
 
 
-class ConfigPanel(ScrolledPanel):
+class ConfigPanel(ScrolledPanel, wx.Notebook):
 
-  def __init__(self, parent, req_cols=1, opt_cols=3, title=None, **kwargs):
-    ScrolledPanel.__init__(self, parent, **kwargs)
-    self.SetupScrolling(scroll_x=False, scrollToTop=False)
+  def __init__(self, parent, req_cols=1, opt_cols=3, title=None, use_tabs=True, **kwargs):
+    if use_tabs:
+      wx.Notebook.__init__(self, parent, **kwargs)
+    else:
+      ScrolledPanel.__init__(self, parent, **kwargs)
+      self.SetupScrolling(scroll_x=False, scrollToTop=False)
+
     self.SetDoubleBuffered(True)
 
     self.title = title
     self._num_req_cols = req_cols
     self._num_opt_cols = opt_cols
+    self.use_tabs = use_tabs
 
     self.section = OrderedDict()
     self.Bind(wx.EVT_SIZE, self.OnResize)
 
   def CreateSection(self, name):
-    self.section[name] = WidgetContainer(self, i18n._(name))
+    self.section[name] = WidgetContainer(self, i18n._(name), self.use_tabs)
+    if self.use_tabs:
+      self.AddPage(self.section[name], name)
 
   def DeleteSection(self, name):
     del self.section[name]
+    if self.use_tabs:
+      for index in range(self.GetPageCount()):
+        if self.GetPageText(index) == name:
+          self.DeletePage(index)
+          break
 
   def Section(self, name):
     return self.section[name]
@@ -111,7 +128,8 @@ class ConfigPanel(ScrolledPanel):
     self.SetSizer(container)
 
   def OnResize(self, evt):
-    self.SetupScrolling(scroll_x=False, scrollToTop=False)
+    if not self.use_tabs:
+      self.SetupScrolling(scroll_x=False, scrollToTop=False)
     evt.Skip()
 
   def clear(self):

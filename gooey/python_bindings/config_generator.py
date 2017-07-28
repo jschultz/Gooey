@@ -33,7 +33,8 @@ def create_from_parser(parser, source_path, cmd_args, **kwargs):
     'group_by_type':        kwargs.get('group_by_type', True),
     'ignore_command':       kwargs.get('ignore_command', None),
     'force_command':        kwargs.get('force_command', None),
-    'use_argparse_groups':  kwargs.get('use_argparse_groups', False)
+    'use_argparse_groups':  kwargs.get('use_argparse_groups', False),
+    'use_tabs':             kwargs.get('use_tabs', False)
   }
 
   if build_spec['use_argparse_groups']:

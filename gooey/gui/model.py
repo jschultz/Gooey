@@ -170,6 +170,8 @@ class MyModel(object):
     self.argument_groups = self.wrap(self.build_spec.get('widgets', {}))
     self.active_group = iter(self.argument_groups).next()
 
+    self.use_tabs = self.build_spec['use_tabs']
+
     self.num_default_cols = self.build_spec.get('num_default_cols')
     self.num_cols_dict = self.build_spec['num_cols_dict']
 
@@ -217,18 +219,21 @@ class MyModel(object):
   def are_required_arguments_present(self):
     error_found = False
     if self.use_argparse_groups:
+      index = 0
       for group in self.groups():
         for arg in self.args(group):
           if arg.required and arg.nargs not in ['?', '*']:
-            error_found |= not self.is_required_argument_present(arg, error_found)
+            error_found |= not self.is_required_argument_present(arg, index if self.use_tabs else None, error_found)
+        if self.args(group):
+          index += 1
     else:
       for arg in self.args("required arguments"):
-        error_found |= not self.is_required_argument_present(arg, error_found)
+        error_found |= not self.is_required_argument_present(arg, 0 if self.use_tabs else None, error_found)
 
     return not error_found
 
   @staticmethod
-  def is_required_argument_present(arg, error_found):
+  def is_required_argument_present(arg, index, error_found):
     widget = arg.widget_instance.widget_pack.widget
     if arg.value:
       widget.SetBackgroundColour(wx.NullColour)
@@ -236,6 +241,9 @@ class MyModel(object):
     else:
       if not error_found:
         error_found = True
+
+        if index is not None:
+          widget.Parent.Parent.Parent.SetSelection(index)
         widget.SetFocus()
       widget.SetBackgroundColour("Red")
       return False

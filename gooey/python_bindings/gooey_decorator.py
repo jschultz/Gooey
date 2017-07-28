@@ -39,7 +39,8 @@ def Gooey(f=None,
           ignore_command='--ignore-gooey',
           force_command=None,
           load_cmd_args=False,
-          use_argparse_groups=False): # TODO: add this to the docs
+          use_argparse_groups=False,
+          use_tabs=False):
   '''
   Decorator for client code's main function.
   Serializes argparse data to JSON for use with the Gooey front end

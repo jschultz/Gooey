@@ -67,17 +67,20 @@ class Presenter(object):
 
   def create_model(self):
     for group in self.model.groups():
-      self.view.create_section(group)
-      self.view.section(group).clear()
-      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
+      if self.model.args(group):
+        self.view.create_section(group)
+        self.view.section(group).clear()
+        self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
 
   def delete_model(self):
     for group in self.model.groups():
-      self.view.delete_section(group)
+      if self.model.args(group):
+        self.view.delete_section(group)
 
   def update_model(self):
     for group in self.model.groups():
-      self.update_list(self.model.args(group), self.view.section(group).get_values())
+      if self.model.args(group):
+        self.update_list(self.model.args(group), self.view.section(group).get_values())
 
     self.syncronize_from_model()
 
@@ -93,8 +96,9 @@ class Presenter(object):
 
     # refresh the widgets
     for group in self.model.groups():
-      for index, widget in enumerate(self.view.section(group)):
-        widget.set_value(self.model.args(group)[index]._value)
+      if self.model.args(group):
+        for index, widget in enumerate(self.view.section(group)):
+          widget.set_value(self.model.args(group)[index]._value)
 
     # swap the views
     getattr(self, self.model.current_state)()
@@ -102,8 +106,9 @@ class Presenter(object):
   def redraw_from_model(self):
     self.view.freeze()
     for group in self.model.groups():
-      self.view.section(group).clear()
-      self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
+      if self.model.args(group):
+        self.view.section(group).clear()
+        self.view.section(group).populate(self.model.args(group), self.model.num_cols_dict.get(group, self.model.num_default_cols))
 
     getattr(self, self.model.current_state)()
     self.view.thaw()
