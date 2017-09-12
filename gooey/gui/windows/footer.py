@@ -5,7 +5,10 @@ Created on Dec 23, 2013
 '''
 
 import wx
-import wx.animate
+try:
+    import wx.animate
+except ImportError:
+    import wx.adv
 
 from gooey.gui.pubsub import pub
 
