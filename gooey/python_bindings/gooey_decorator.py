@@ -68,6 +68,29 @@ def Gooey(f=None,
           sys.exit(1)
 
       if not build_spec:
+        for action in self._actions:
+          action.save_required = action.required
+          action.required = False
+          action.save_nargs = action.nargs
+          if action.nargs == '+':
+            action.nargs = '*'
+          elif action.nargs is None:
+            action.nargs = '?'
+        for mutex_group in self._mutually_exclusive_groups:
+          mutex_group.save_required = mutex_group.required
+          mutex_group.required = False
+        cmd_args = self.original_parse_args()
+        for action in self._actions:
+          action.required = action.save_required
+          action.nargs = action.save_nargs
+          dest = getattr(action, 'dest', None)
+          if dest:
+            cmd_arg = getattr(cmd_args, dest, None)
+            if cmd_arg:
+              action.default = cmd_arg
+        for mutex_group in self._mutually_exclusive_groups:
+          mutex_group.required = mutex_group.save_required
+
         build_spec = config_generator.create_from_parser(
           self,
           source_path,
